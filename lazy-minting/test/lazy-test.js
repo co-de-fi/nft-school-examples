@@ -150,4 +150,30 @@ describe("LazyNFT", function() {
     expect(await contract.availableToWithdraw()).to.equal(0)
   })
 
+  it("Should be able to create multiple vouchers", async function() {
+    const tokens = ['0.324426 1.453019 2.239343 -0.098086 -0.606553 -0.788969',
+    '0.318162 1.481233 2.241762 0.223863 -0.736933 -0.637821',
+    '0.335671 1.473526 2.252273 -0.599130 -0.293641 -0.744861',
+    '0.338732 1.497483 2.253667 -0.025149 0.070221 -0.997214',
+    '1.230588 0.203938 2.593066 0.027622 0.027648 -0.999236',
+    '0.343097 1.464765 2.222744 -0.108885 -0.612010 -0.783318',
+    '1.985144 0.498052 1.962773 -0.267597 -0.362536 -0.892726',
+    '2.001390 0.498998 1.944717 -0.256976 -0.334045 -0.906850',
+    '1.975000 0.496476 1.949694 -0.278126 0.009445 -0.960498',
+    '1.985873 0.496875 1.944021 -0.295892 -0.274845 -0.914827']
+
+    const { contract, redeemerContract, redeemer, minter } = await deploy()
+
+    const lazyMinter = new LazyMinter({ contract, signer: minter })
+
+    for (let i = 0; i < 10; i++) {
+      const voucher = await lazyMinter.createVoucher(i, tokens[i], 0)
+
+      await expect(redeemerContract.redeem(redeemer.address, voucher))
+          .to.emit(contract, 'Transfer')  // transfer from null address to minter
+          .withArgs('0x0000000000000000000000000000000000000000', minter.address, voucher.tokenId)
+          .and.to.emit(contract, 'Transfer') // transfer from minter to redeemer
+          .withArgs(minter.address, redeemer.address, voucher.tokenId);
+    }
+  });
 });
